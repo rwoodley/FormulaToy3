@@ -133,52 +133,77 @@ function eventHandler(canvas, res, e) {
         }
 	}
 }
-	
-function uploadGif(pngurl) {
-    var xhr1 = new XMLHttpRequest();
-    var pngukey = Math.floor(Math.random() * 10000) + 1;
-    var filename = "FormulaToy" + pngukey;
-    xhr1.open("POST", "http://3linematrix.com/Upload.aspx?username=FormulaToy&filename=" + filename + "&png=true");
-    xhr1.setRequestHeader('Content-Type', 'image/png');
-    xhr1.onreadystatechange = function () {
-        console.log("Uploading PNG, got status = " + xhr1.status);
-        //document.getElementById('loadingGif').style.display = 'none'
-        //if (xhr1.readyState == 4 && xhr1.status == 200) {
-        //    alert("Your PNG was uploaded successfully.");
-        //}
-    }
-    var data = pngurl.replace("data:image/png;base64,", "");
-    xhr1.send(data);
-    console.log("Sent PNG to S3, filename = " + filename);
-    return pngukey;
-}
-
 function shareFormula() {
-    var pngUrl = _renderer.domElement.toDataURL();
-    var image = document.getElementById('SnapPng');
-    image.src = pngUrl;
-    var pngukey = uploadGif(pngUrl);
-
-    var tempName = parseInt((new Date()).getTime() / 1000);
     var root = location.protocol + '//' + location.host + location.pathname;
-    var url = root + _params.toURL(pngukey) + "&" + tempName;
-    var cleanFormula = "Surface graph for " + encodeURIComponent("'" + _params.formula + "'\n");
-    var pinterestDescription = encodeURIComponent("Surface graph for '" + _params.formula + "'\n");
-    document.getElementById('MatrixURL').value = url;
-    document.getElementById("shareEmail").href = "mailto:?subject=" + cleanFormula + "&body=" + encodeURIComponent(url); // double-encoding seems to be required here.
-    document.getElementById("shareTW").href = 'http://twitter.com/share?text=' + cleanFormula + '&url=' + encodeURIComponent(url);
-    document.getElementById("shareFB").href = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url);
-    document.getElementById("sharePI").href = "https://www.pinterest.com/pin/create/button/?url=" + encodeURIComponent(url)
-        + "&media=" + encodeURIComponent("http://3linematrix.com.s3-website-us-east-1.amazonaws.com/FormulaToy.FormulaToy" + pngukey + ".png")
-        + "&description=" + pinterestDescription
-    ;
-    document.getElementById('modalBackground').style.display = 'block';
-    var el = document.getElementById('ShareDiv');
+    var url = root + _params.toURL("");
+    saveURLToFile(getCurrentDateTimeString(), url);
+}
+function saveURLToFile(filename, pngUrl) {
+    // Request a file handle
+    window.showSaveFilePicker({
+        suggestedName: filename+".txt",
+        types: [{
+            description: "txt Files",
+            accept: { "text/plain": [".txt"] }
+        }]
+    }).then(function(fileHandle) {
+        // Create a writable stream
+        return fileHandle.createWritable().then(function(writable) {
+            // Write content to the file
+            return writable.write(pngUrl).then(function() {
+                // Close the stream to save the file
+                return writable.close();
+            });
+        });
+    }).then(function() {
+        // alert("URL saved successfully!");
+        saveScreenshot(filename);
+    }).catch(function(error) {
+        console.error("Error saving url file:", error);
+    });
+}
+function saveScreenshot(filename) {
+    // Assume this is how you're getting the screenshot as a Data URL
+    var pngUrl = _renderer.domElement.toDataURL("image/png"); 
 
-    el.style.display = 'block';
-    el.style.position = 'absolute';
-    var top = 20;
-    var left = 20;
-    el.style.top = top + "px";
-    el.style.left = left + "px";
+    // Convert Data URL to Blob
+    var byteString = atob(pngUrl.split(',')[1]);
+    var arrayBuffer = new ArrayBuffer(byteString.length);
+    var uint8Array = new Uint8Array(arrayBuffer);
+    for (var i = 0; i < byteString.length; i++) {
+        uint8Array[i] = byteString.charCodeAt(i);
+    }
+    var blob = new Blob([uint8Array], { type: "image/png" });
+
+    // Prompt user to save the file
+    window.showSaveFilePicker({
+        suggestedName: filename + ".png",
+        types: [{
+            description: "PNG Image",
+            accept: { "image/png": [".png"] }
+        }]
+    }).then(function(fileHandle) {
+        return fileHandle.createWritable().then(function(writable) {
+            return writable.write(blob).then(function() {
+                return writable.close();
+            });
+        });
+    }).then(function() {
+        alert("Screenshot saved successfully!");
+    }).catch(function(error) {
+        console.error("Error saving file:", error);
+    });
+}
+function getCurrentDateTimeString() {
+    var now = new Date();
+    
+    var year = now.getFullYear();
+    var month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+    var day = String(now.getDate()).padStart(2, '0');
+    
+    var hours = String(now.getHours()).padStart(2, '0');
+    var minutes = String(now.getMinutes()).padStart(2, '0');
+    var seconds = String(now.getSeconds()).padStart(2, '0');
+
+    return `${year}${month}${day}_${hours}${minutes}${seconds}`;
 }

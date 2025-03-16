@@ -78,6 +78,8 @@ function init() {
 	spotLight.distance=400;
 	_scene.add( spotLight );
 	
+    const axesHelper = new THREE.AxisHelper(5); // Length of axes
+    _scene.add(axesHelper);
 	//drawLine(0,1000,0,'blue');
 	drawCoords();
     setupDatGui();  // this will draw a shape.
