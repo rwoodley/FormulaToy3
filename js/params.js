@@ -8,7 +8,7 @@ function params() {
     this.Z = 0;
     this.P = 0.5;
     this.PNGUKey = -1;
-    this.system = "cartesian";
+    this.system = "parametric";
     this.color = "#ff0000"; // color (change "#" to "0x")
     this.colorS = "#ffff00"; // color (change "#" to "0x")
     this.shininess = 30;

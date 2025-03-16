@@ -10,7 +10,7 @@ function getPossibleValuesForSystem(system) {
         possibleValues = "radius, phi, theta";
     }
     if (_params.system == "parametric") {
-        possibleValues = "x,y,z,u,v,xx,yy,zz,phi,rr,pp,qq";
+        possibleValues = "x,y,z,u,v,xx,yy,zz,phi,rr,pp,qq,r1,r2,r3,torusknot,point";
     }
     if (_params.system == "cylindrical") {
         possibleValues = "z,radius,phi,p";

@@ -84,6 +84,9 @@ function parseTokens(tokens, formula, possibleValues, mathPrefix) {
         }
         else {
             if (token == 'pi' || token == 'e') continue;
+            if (token == 'point.x') continue;
+            if (token == 'point.y') continue;
+            if (token == 'point.z') continue;
             if (possibleValues.indexOf(token) >= 0) continue;
             if (!isNaN(parseFloat(token)) && isFinite(token)) continue;
 

@@ -113,7 +113,7 @@ function doPlot() {
 	var prefix, postfix;
     if (_params.system == "cartesian") {
         prefix = dependentVariable == 'x' ?
-        "var xx, yy, zz, rr, phi, pp, qq; var x = v * 2 - 1; \
+        "var xx, yy, zz, rr, phi, pp, qq, r1, r2,r3, point; var x = v * 2 - 1; \
         var y = u * 2 - 1; \
         var z = v * 2 - 1; " :
         "var x = u * 2 - 1; \
@@ -189,7 +189,7 @@ function doPlot() {
     updateMeshAppearance();
 }
 function doShape(x, y, z, daFunc) {
-    var Geo3 = new THREE.ParametricGeometry(daFunc, 180, 180, false);
+    var Geo3 = new THREE.ParametricGeometry(daFunc, 720, 720, false);
     mesh = new THREE.Mesh( Geo3, _mat );
     mesh.position.x = x; mesh.position.y = y; mesh.position.z = z;
     this._scene.add(mesh);
@@ -219,3 +219,98 @@ function CosH(Angle) {                      // Angle in radians
     var n = 1 / p;
     return (p * 1 + n * 1) / 2;
 } // CosH
+// function torusknot(u, v, R, r, rr) {
+//     // Tangent vector components (T)
+//     let Tx = -3 * (R + r * Math.cos(7 * u)) * Math.sin(3 * u) - 7 * r * Math.sin(7 * u) * Math.cos(3 * u);
+//     let Ty = 3 * (R + r * Math.cos(7 * u)) * Math.cos(3 * u) - 7 * r * Math.sin(7 * u) * Math.sin(3 * u);
+//     let Tz = 7 * r * Math.cos(7 * u);
+
+//     // Normalize tangent vector (T)
+//     let lengthT = Math.sqrt(Tx * Tx + Ty * Ty + Tz * Tz);
+//     Tx /= lengthT;
+//     Ty /= lengthT;
+//     Tz /= lengthT;
+
+//     // Normal vector (N) is the derivative of T
+//     let Nx = -3 * r * Math.sin(7 * u) * Math.cos(3 * u) - 7 * r * Math.cos(7 * u) * Math.cos(3 * u);
+//     let Ny = 3 * r * Math.sin(7 * u) * Math.sin(3 * u) - 7 * r * Math.cos(7 * u) * Math.sin(3 * u);
+//     let Nz = 7 * r * Math.cos(7 * u);
+
+//     // Normalize normal vector (N)
+//     let lengthN = Math.sqrt(Nx * Nx + Ny * Ny + Nz * Nz);
+//     Nx /= lengthN;
+//     Ny /= lengthN;
+//     Nz /= lengthN;
+
+//     // Binormal vector (B) is the cross product of T and N
+//     let Bx = Ty * Nz - Tz * Ny;
+//     let By = Tz * Nx - Tx * Nz;
+//     let Bz = Tx * Ny - Ty * Nx;
+
+//     // Normalize binormal vector (B)
+//     let lengthB = Math.sqrt(Bx * Bx + By * By + Bz * Bz);
+//     Bx /= lengthB;
+//     By /= lengthB;
+//     Bz /= lengthB;
+
+//     // Apply the formula for the thickened torus knot
+//     let x = (R + r * Math.cos(7 * u)) * Math.cos(3 * u) + rr * (Math.cos(v) * Nx + Math.sin(v) * Bx);
+//     let y = (R + r * Math.cos(7 * u)) * Math.sin(3 * u) + rr * (Math.cos(v) * Ny + Math.sin(v) * By);
+//     let z = r * Math.sin(7 * u) + rr * (Math.cos(v) * Nz + Math.sin(v) * Bz);
+
+//     return { x: x, y: y, z: z };
+// }
+
+function torusknot(u, v, R, r, rr, p, q) {
+    // Base curve (p, q) torus knot
+    let x0 = (R + r * Math.cos(q * u)) * Math.cos(p * u);
+    let y0 = (R + r * Math.cos(q * u)) * Math.sin(p * u);
+    let z0 = r * Math.sin(q * u);
+
+    // Tangent vector T (derivative of the curve)
+    let Tx = -p * (R + r * Math.cos(q * u)) * Math.sin(p * u) - q * r * Math.sin(q * u) * Math.cos(p * u);
+    let Ty =  p * (R + r * Math.cos(q * u)) * Math.cos(p * u) - q * r * Math.sin(q * u) * Math.sin(p * u);
+    let Tz =  q * r * Math.cos(q * u);
+
+    // Normalize T
+    let T_length = Math.sqrt(Tx * Tx + Ty * Ty + Tz * Tz);
+    Tx /= T_length;
+    Ty /= T_length;
+    Tz /= T_length;
+
+    // Arbitrary reference vector (avoid collinearity with T)
+    let Ax = 0, Ay = 0, Az = 1;
+    if (Math.abs(Tz) > 0.9) { // If T is nearly vertical, use a different reference
+        Ax = 1; Ay = 0; Az = 0;
+    }
+
+    // Compute Normal vector N (perpendicular to T)
+    let Nx = Ay * Tz - Az * Ty;
+    let Ny = Az * Tx - Ax * Tz;
+    let Nz = Ax * Ty - Ay * Tx;
+
+    // Normalize N
+    let N_length = Math.sqrt(Nx * Nx + Ny * Ny + Nz * Nz);
+    Nx /= N_length;
+    Ny /= N_length;
+    Nz /= N_length;
+
+    // Compute Binormal vector B = T × N
+    let Bx = Ty * Nz - Tz * Ny;
+    let By = Tz * Nx - Tx * Nz;
+    let Bz = Tx * Ny - Ty * Nx;
+
+    // Normalize B
+    let B_length = Math.sqrt(Bx * Bx + By * By + Bz * Bz);
+    Bx /= B_length;
+    By /= B_length;
+    Bz /= B_length;
+
+    // Apply thickness using N and B
+    let x = x0 + rr * (Math.cos(v) * Nx + Math.sin(v) * Bx);
+    let y = y0 + rr * (Math.cos(v) * Ny + Math.sin(v) * By);
+    let z = z0 + rr * (Math.cos(v) * Nz + Math.sin(v) * Bz);
+
+    return { x, y, z };
+}
+

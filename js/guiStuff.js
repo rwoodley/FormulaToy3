@@ -45,7 +45,8 @@ function updateMeshAppearance()
 var _firstTime = true;
 function updateCoordinateSystem() {
     var updateFormula = !_drawClicked && getParameterByName('formula') == '';
-    var showAlert = !_firstTime || getParameterByName('formula') == '';
+    // var showAlert = !_firstTime || getParameterByName('formula') == '';
+    var showAlert = false;
     _firstTime = false;
     var textArea = document.getElementById('myTextArea');
     if (_params.system == 'cartesian') {
@@ -115,7 +116,7 @@ function setupDatGui() {
     document.body.appendChild(gui1.domElement );
     var formula = gui1.add(_params, 'formula').listen();
     _formulaDomElement = formula.domElement;
-    var coordSystem = gui1.add(_params, 'system', ['cartesian', 'spherical', 'toroidal', 'cylindrical', 'parametric']);
+    var coordSystem = gui1.add(_params, 'system', ['parametric', 'spherical', 'toroidal', 'cylindrical', 'cartesian']);
     coordSystem.onChange(function (value) { updateCoordinateSystem(); });
     var p = gui1.add(_params, 'P').min(-1).max(1).step(0.01).name("p");
     p.onChange(function (value) { draw(); });
