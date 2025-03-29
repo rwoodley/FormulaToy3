@@ -124,7 +124,8 @@ function setupDatGui() {
     gui1.add(_params, 'draw').name("Draw.");
 	gui1.add(_params, 'help').name("Help.");
 	gui1.add(_params, 'showExamples').name("Examples.");
-	gui1.add(_params, 'share').name("Share.");
+	gui1.add(_params, 'share').name("Save.");
+	gui1.add(_params, 'export').name("Export.");
 	gui1.add(_params, 'navigateToComplex').name("Go to Complex Numbers.");
 
 	var gui = new dat.GUI();

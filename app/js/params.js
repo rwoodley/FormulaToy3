@@ -27,6 +27,7 @@ function params() {
         window.location.href = 'ComplexApp.aspx';
     };
     this.share = function () { shareFormula() };
+    this.export = function () { exportMeshAsStl() };
     this.toURL = function (pngUKey) {
         var sb = '';
         //alert(this.formula);

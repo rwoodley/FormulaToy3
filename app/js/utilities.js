@@ -133,10 +133,12 @@ function eventHandler(canvas, res, e) {
         }
 	}
 }
-function shareFormula() {
+function shareFormula(filename) {
     var root = location.protocol + '//' + location.host + location.pathname;
     var url = root + _params.toURL("");
-    saveURLToFile(getCurrentDateTimeString(), url);
+    if (filename=='' || filename == null)
+        filename = getCurrentDateTimeString();
+    saveURLToFile(filename, url);
 }
 function saveURLToFile(filename, pngUrl) {
     // Request a file handle
@@ -191,7 +193,7 @@ function saveScreenshot(filename) {
     }).then(function() {
         alert("Screenshot saved successfully!");
     }).catch(function(error) {
-        console.error("Error saving file:", error);
+        console.error("Error saving screenshot:", error);
     });
 }
 function getCurrentDateTimeString() {
@@ -206,4 +208,38 @@ function getCurrentDateTimeString() {
     var seconds = String(now.getSeconds()).padStart(2, '0');
 
     return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+}
+function exportMeshAsStl() {
+    var mesh = _lastMesh;
+    var filename = getCurrentDateTimeString();
+
+    // const exporter = new THREE.STLExporter();
+    // const stlString = exporter.parse(mesh, { binary: true }); // Use true for binary STL
+    const exporter = new THREE.STLBinaryExporter();
+    const stlString = exporter.parse(mesh, { binary: true }); // Use true for binary STL
+
+    // Create a Blob with STL data
+    // const blob = new Blob([stlString], { type: 'text/plain' });
+    const blob = new Blob([stlString], { type: 'application/octet-stream' });
+
+    // Prompt user to save the file
+    window.showSaveFilePicker({
+        suggestedName: filename + ".stl",
+        types: [{
+            description: "Binary STL file",
+            // accept: { "model/stl": [".stl"] }
+            accept: { "application/octet-stream": [".stl"] }
+        }]
+    }).then(function(fileHandle) {
+        return fileHandle.createWritable().then(function(writable) {
+            return writable.write(blob).then(function() {
+                return writable.close();
+            });
+        });
+    }).then(function() {
+        shareFormula(filename);
+    }).catch(function(error) {
+        console.error("Error saving STL file:", error);
+    });
+
 }
