@@ -1,12 +1,26 @@
-var _camera, _scene, _renderer, _system;
-var _pointLight,_pointLightSphere;
-var _spotLight;
+import * as THREE from 'three';
+import { FontLoader } from 'jsm/loaders/FontLoader.js';
+import { OrbitControls } from 'jsm/controls/OrbitControls.js';
+import Stats from 'jsm/libs/stats.module.js';
+import { ParametricGeometry } from 'jsm/geometries/ParametricGeometry.js';
+import { params } from './params.js';
+import { setupDatGui } from './guiStuff.js';
+import { updateMeshAppearance } from './guiStuff.js';
+import {convertToJavascript} from './FormulaValidationCommon.js'
+import {getCleanFormula} from './FormulaValidationCommon.js'
+import {getDependentVariable} from './FormulaValidationCommon.js'
+import {rotateCameraY} from './utilities.js'
+
+// import { drawCoords  } from './utilities.js';
+
+var _camera, _scene, _renderer;
 var _controls;
 var _stats;
 var _mat;
 var _lastMesh;
 var _params;
-var loader = new THREE.FontLoader();
+var _font;
+var loader = new FontLoader();
 loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
     _font = font;
     init();
@@ -25,74 +39,72 @@ function clearPlot() {
 }
 function draw() {
     clearPlot();
-	doPlot();
+    doPlot();
 }
 function init() {
 
-    if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
-    _params = new params();
+    _params = new params(userClickedDraw);
     _params.initFromURL();
-    //alert(_params.PNGUKey);
-    //if (_params.PNGUKey > -1) {
-    //    var image = document.getElementById('SnapPng');
-    //    image.src = "http://3linematrix.com.s3-website-us-east-1.amazonaws.com/FormulaToy.FormulaToy" + _params.PNGUKey + ".png";
-    //}
 
-    //_renderer = new THREE.WebGLRenderer();
     _renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
-    //_renderer = new THREE.CanvasRenderer();
-    _renderer.setSize(window.innerWidth, window.innerHeight);
-	_renderer.shadowMapEnabled = true;
-    _renderer.sortObjects = false; // see http://stackoverflow.com/questions/15994944/transparent-objects-in-threejs
-	//_renderer.shadowMapCullFace = THREE.CullFaceBack;        
-	document.body.appendChild( _renderer.domElement );
 
-	_camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 4000 );
-	_camera.position.x = 0;
-	_camera.position.y = 4;
-	_camera.position.z = 8                                                             ;
-	_controls = new THREE.OrbitControls( _camera, _renderer.domElement );
+    _renderer.setSize(window.innerWidth, window.innerHeight);
+    _renderer.shadowMapEnabled = true;
+    _renderer.sortObjects = false; // see http://stackoverflow.com/questions/15994944/transparent-objects-in-threejs
+    _renderer.outputEncoding = THREE.sRGBEncoding;
+
+    document.body.appendChild(_renderer.domElement);
+
+    _camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 4000);
+    _camera.position.x = 0;
+    _camera.position.y = 4;
+    _camera.position.z = 8;
+    _controls = new OrbitControls(_camera, _renderer.domElement);
 
     // STATS
-	_stats = new Stats();
-	_stats.domElement.style.position = 'absolute';
-	_stats.domElement.style.bottom = '0px';
-	_stats.domElement.style.zIndex = 100;
-	document.body.appendChild( _stats.domElement );    
-    
-	_scene = new THREE.Scene();
-	_camera.lookAt(_scene.position);
+    _stats = new Stats();
+    document.body.appendChild(_stats.dom);
+    _stats.dom.style.position = 'absolute'; // or 'fixed'
+    _stats.dom.style.left = '0px';
+    _stats.dom.style.bottom = '0px';
+    _stats.dom.style.top = '';
 
-	var ambientLight = new THREE.AmbientLight(0x333333);
-	_scene.add(ambientLight);
+	_scene = new THREE.Scene();
+    _camera.lookAt(_scene.position);
+
+	var ambientLight = new THREE.AmbientLight(0xffffff, 1);
+    _scene.add(ambientLight);
 
 	var spotLight = new THREE.SpotLight( 0xffffff );
-	spotLight.position.set( 40, 390, -30);
+	spotLight.position.set( 40, 40, -40);
 	spotLight.intensity = 3;
-	spotLight.distance=600;
+	spotLight.distance=0;
+    spotLight.decay = 0;
 	_scene.add( spotLight );
 
 	spotLight = new THREE.SpotLight( 0xaaaaff );
-	spotLight.position.set(-40, -190, 80);
+	spotLight.position.set(-40, -40, -40);
 	spotLight.intensity = 2;
-	spotLight.distance=400;
+	spotLight.distance=0;
+    spotLight.decay = 0;
 	_scene.add( spotLight );
-	
-    const axesHelper = new THREE.AxisHelper(5); // Length of axes
+
+    const axesHelper = new THREE.AxesHelper(5); // Length of axes
     _scene.add(axesHelper);
-	//drawLine(0,1000,0,'blue');
-	drawCoords();
-    setupDatGui();  // this will draw a shape.
-	animate();
+    setupDatGui(_params, _drawClicked, draw, clearPlot, getLastMesh);  // this will draw a shape.
+    animate();
 
 }
+function getLastMesh() {
+    return _lastMesh;
+}
 function doPlot() {
-    var mesh;
-    var color = 0xffffff;
-    //var Mat = new THREE.MeshLambertMaterial({color: 0xaaaaaa, opacity: 1 });
-    //var Mat2 = new THREE.MeshLambertMaterial({color: 0xddaaaa, opacity: 1 });
     _mat = new THREE.MeshPhongMaterial(
-    { ambient: 0x555555, color: color, specular: 0x0000cc, shininess: 20,shading: THREE.SmoothShading  }  );
+    {   color: 0x000000, 
+        specular: 0x00ffff, 
+        shininess: 200,
+        side: THREE.DoubleSide
+    }  );
 
     var statements = _params.formula.replace(/\n/g,'').split(';');
     var jsFormula = "";
@@ -108,43 +120,43 @@ function doPlot() {
         }
     }
     if (numValidStatements == 1)
-        trimmedUserFormula = trimmedUserFormula.replace(/;/g, '');   
+        trimmedUserFormula = trimmedUserFormula.replace(/;/g, '');
     _params.setFormula(getCleanFormula(trimmedUserFormula));
     var dependentVariable = getDependentVariable(_params.formula);
 
-	var prefix, postfix;
+    var prefix, postfix;
     if (_params.system == "cartesian") {
         prefix = dependentVariable == 'x' ?
-        "var xx, yy, zz, rr, phi, pp, qq, r1, r2,r3, point; var x = v * 2 - 1; \
+            "var xx, yy, zz, rr, phi, pp, qq, r1, r2,r3, point; var x = v * 2 - 1; \
         var y = u * 2 - 1; \
         var z = v * 2 - 1; " :
-        "var x = u * 2 - 1; \
+            "var x = u * 2 - 1; \
         var y = v * 2 - 1; \
         var z = v * 2 - 1; " ;
-        
+
         var postFix = "";
     }
     if (_params.system == "spherical") {
         prefix = dependentVariable != 'phi' ?
-        "var phi = u * 2 * Math.PI; \
+            "var phi = u * 2 * Math.PI; \
          var theta = v*Math.PI; \
          var radius = v;" :
-        "var phi = v * 2 * Math.PI; \
+            "var phi = v * 2 * Math.PI; \
          var theta = u*Math.PI; \
          var radius = v;" ;
 
         var postFix =
-        "z = radius * Math.cos(theta); \
+            "z = radius * Math.cos(theta); \
         x = radius*Math.sin(theta)*Math.cos(phi); \
         y = radius*Math.sin(theta)*Math.sin(phi); \
         ";
     }
     if (_params.system == "toroidal") {
         prefix = dependentVariable != 'phi' ?
-        "var phi = u * 2 * Math.PI; \
+            "var phi = u * 2 * Math.PI; \
          var theta = v * 2 * Math.PI; \
          var radius = v;" :
-        "var phi = v * 2 * Math.PI; \
+            "var phi = v * 2 * Math.PI; \
          var theta = u * 2 * Math.PI; \
          var radius = v;" ;
 
@@ -158,19 +170,19 @@ function doPlot() {
     }
     if (_params.system == "cylindrical") {
         prefix = dependentVariable != 'phi' ?
-        "var phi = u * 2 * Math.PI; \
+            "var phi = u * 2 * Math.PI; \
         var radius = v; \
         var z = v * 2 -1;" :
-        "var phi = v * 2 * Math.PI; \
+            "var phi = v * 2 * Math.PI; \
         var radius = u; \
         var z = v * 2 -1;";
         var postFix =
-        "var x = radius*Math.cos(phi); \
+            "var x = radius*Math.cos(phi); \
         var y = radius*Math.sin(phi); \
         ";
     }
     if (_params.system == "parametric") {
-        prefix = '';
+        prefix = 'x=u;y=v;z=x*x+y*y;';
         var postFix = "";
     }
 
@@ -178,35 +190,36 @@ function doPlot() {
     var preprefix = "var pi = Math.PI; var e = Math.E; var p = " + _params.P + ";";
     var newCode = preprefix + prefix + jsFormula + postFix;
     try {
-        eval(newCode); 
+        eval(newCode);
     } catch (e) {
         if (e instanceof SyntaxError) {
             alert('There is a syntax error with your formula. Try again please');
             return;
         }
     }
-    newCode += "var scale = 1; return new THREE.Vector3(x*scale, z*scale, y*scale);  "; // put this after the eval() or non-Chrome browsers will complain.
-	var myFunc = new Function("u,v",newCode);
+    newCode += "var scale = 1; target.set(x*scale, z*scale, y*scale);  "; // put this after the eval() or non-Chrome browsers will complain.
+    console.log(newCode);
+	var myFunc = new Function("u,v,target",newCode);
     doShape(0,0,0,myFunc);
-    updateMeshAppearance();
+    updateMeshAppearance(_params, getLastMesh);
 }
 function doShape(x, y, z, daFunc) {
-    var Geo3 = new THREE.ParametricGeometry(daFunc, 720, 720, false);
-    mesh = new THREE.Mesh( Geo3, _mat );
+    var Geo3 = new ParametricGeometry(daFunc, 720, 720, false);
+    var mesh = new THREE.Mesh( Geo3, _mat );
     mesh.position.x = x; mesh.position.y = y; mesh.position.z = z;
-    this._scene.add(mesh);
-	_lastMesh = mesh;
+    _scene.add(mesh);
+    _lastMesh = mesh;
 }
 function animate() {
 	requestAnimationFrame( animate );
-	if (_params.spin) rotateCameraY(_params.spinSpeed);
+    if (_params.spin) rotateCameraY(_params.spinSpeed, _camera);
     // put the 'lookAt' after the camera rotation or it will be askew.
 	_camera.lookAt(new THREE.Vector3(_params.X,_params.Z,_params.Y));
-	render();
+    render();
 }
 function render() {
     _renderer.render( _scene, _camera );
-	_controls.update();
+    _controls.update();
     _stats.update();
 }
 function SinH(Angle) {                      // Angle in radians
@@ -221,47 +234,6 @@ function CosH(Angle) {                      // Angle in radians
     var n = 1 / p;
     return (p * 1 + n * 1) / 2;
 } // CosH
-// function torusknot(u, v, R, r, rr) {
-//     // Tangent vector components (T)
-//     let Tx = -3 * (R + r * Math.cos(7 * u)) * Math.sin(3 * u) - 7 * r * Math.sin(7 * u) * Math.cos(3 * u);
-//     let Ty = 3 * (R + r * Math.cos(7 * u)) * Math.cos(3 * u) - 7 * r * Math.sin(7 * u) * Math.sin(3 * u);
-//     let Tz = 7 * r * Math.cos(7 * u);
-
-//     // Normalize tangent vector (T)
-//     let lengthT = Math.sqrt(Tx * Tx + Ty * Ty + Tz * Tz);
-//     Tx /= lengthT;
-//     Ty /= lengthT;
-//     Tz /= lengthT;
-
-//     // Normal vector (N) is the derivative of T
-//     let Nx = -3 * r * Math.sin(7 * u) * Math.cos(3 * u) - 7 * r * Math.cos(7 * u) * Math.cos(3 * u);
-//     let Ny = 3 * r * Math.sin(7 * u) * Math.sin(3 * u) - 7 * r * Math.cos(7 * u) * Math.sin(3 * u);
-//     let Nz = 7 * r * Math.cos(7 * u);
-
-//     // Normalize normal vector (N)
-//     let lengthN = Math.sqrt(Nx * Nx + Ny * Ny + Nz * Nz);
-//     Nx /= lengthN;
-//     Ny /= lengthN;
-//     Nz /= lengthN;
-
-//     // Binormal vector (B) is the cross product of T and N
-//     let Bx = Ty * Nz - Tz * Ny;
-//     let By = Tz * Nx - Tx * Nz;
-//     let Bz = Tx * Ny - Ty * Nx;
-
-//     // Normalize binormal vector (B)
-//     let lengthB = Math.sqrt(Bx * Bx + By * By + Bz * Bz);
-//     Bx /= lengthB;
-//     By /= lengthB;
-//     Bz /= lengthB;
-
-//     // Apply the formula for the thickened torus knot
-//     let x = (R + r * Math.cos(7 * u)) * Math.cos(3 * u) + rr * (Math.cos(v) * Nx + Math.sin(v) * Bx);
-//     let y = (R + r * Math.cos(7 * u)) * Math.sin(3 * u) + rr * (Math.cos(v) * Ny + Math.sin(v) * By);
-//     let z = r * Math.sin(7 * u) + rr * (Math.cos(v) * Nz + Math.sin(v) * Bz);
-
-//     return { x: x, y: y, z: z };
-// }
 
 function torusknot(u, v, R, r, rr, p, q) {
     // Base curve (p, q) torus knot
@@ -315,4 +287,10 @@ function torusknot(u, v, R, r, rr, p, q) {
 
     return { x, y, z };
 }
+window.addEventListener('keydown', function (event) {
+    //console.log(event.keyCode);
+    if (event.keyCode == 13) { // enter key pressed
+        _params.draw();
+    }
+});
 

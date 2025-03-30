@@ -1,18 +1,17 @@
+import * as THREE from 'three';
+
+import { getParameterByName  } from './utilities.js';
+
+
 // Just putting this in a separate file so it doesn't clutter Main.js
 // but it is in the Main.js namespace.
 // maintains the global _params
-window.addEventListener('keydown', function (event) {
-    //console.log(event.keyCode);
-    if (event.keyCode == 13) { // enter key pressed
-        _params.draw();
-    }
-});
-function updateMeshAppearance()
+export function updateMeshAppearance(_params, getLastMesh)
 {
     var value = _params.material;
 	var newMaterial;
 	if (value == "Basic") {
-		newMaterial = new THREE.MeshBasicMaterial( { color: 0x000000 } );
+		newMaterial = new THREE.MeshBasicMaterial( { color: 0xffffff } );
         _sphereColorS.domElement.parentNode.style.display = 'none';
     }
 	else if (value == "Lambert") {
@@ -20,30 +19,35 @@ function updateMeshAppearance()
         _sphereColorS.domElement.parentNode.style.display = 'none';
     }
 	else if (value == "Phong") {
-		newMaterial = new THREE.MeshPhongMaterial( { color: 0x000000, side: THREE.DoubleSide } );
+		newMaterial = new THREE.MeshPhongMaterial(
+            {   color: 0x000000, 
+                specular: 0x00ffff, 
+                shininess: 200,
+                side: THREE.DoubleSide
+            }  );
         _sphereColorS.domElement.parentNode.style.display = 'block';
     }
 	else { // (value == "Wireframe")
 		newMaterial = new THREE.MeshBasicMaterial( { wireframe: true } );
         _sphereColorS.domElement.parentNode.style.display = 'none';
     }
-	_lastMesh.material = newMaterial;
+	getLastMesh().material = newMaterial;
 	
-	_lastMesh.material.color.setHex( _params.color.replace("#", "0x") );
-//	if (_lastMesh.material.ambient)
-//		_lastMesh.material.ambient.setHex( _params.colorA.replace("#", "0x") );
-//    if (_lastMesh.material.emissive)
-//		_lastMesh.material.emissive.setHex( _params.colorE.replace("#", "0x") ); 
-	if (_lastMesh.material.specular)
-		_lastMesh.material.specular.setHex( _params.colorS.replace("#", "0x") ); 
-    if (_lastMesh.material.shininess)
-		_lastMesh.material.shininess = _params.shininess;
-	_lastMesh.material.opacity = _params.opacity;  
-	_lastMesh.material.transparent = true;
+	getLastMesh().material.color.setHex( _params.color.replace("#", "0x") );
+//	if (getLastMesh().material.ambient)
+//		getLastMesh().material.ambient.setHex( _params.colorA.replace("#", "0x") );
+//    if (getLastMesh().material.emissive)
+//		getLastMesh().material.emissive.setHex( _params.colorE.replace("#", "0x") ); 
+	if (getLastMesh().material.specular)
+		getLastMesh().material.specular.setHex( _params.colorS.replace("#", "0x") ); 
+    if (getLastMesh().material.shininess)
+		getLastMesh().material.shininess = _params.shininess;
+	getLastMesh().material.opacity = _params.opacity;  
+	getLastMesh().material.transparent = true;
 
 }
 var _firstTime = true;
-function updateCoordinateSystem() {
+function updateCoordinateSystem(_params, _drawClicked, draw, clearPlot) {
     var updateFormula = !_drawClicked && getParameterByName('formula') == '';
     // var showAlert = !_firstTime || getParameterByName('formula') == '';
     var showAlert = false;
@@ -107,7 +111,7 @@ function largeInputBox() {
 }
 var _sphereColorS;
 var _formulaDomElement;
-function setupDatGui() {
+export function setupDatGui(_params, _drawClicked, draw, clearPlot, getLastMesh) {
 
 	var gui1 = new dat.GUI({autoPlace: false, width: 400});
     gui1.domElement.style.position = 'absolute';
@@ -117,7 +121,7 @@ function setupDatGui() {
     var formula = gui1.add(_params, 'formula').listen();
     _formulaDomElement = formula.domElement;
     var coordSystem = gui1.add(_params, 'system', ['parametric', 'spherical', 'toroidal', 'cylindrical', 'cartesian']);
-    coordSystem.onChange(function (value) { updateCoordinateSystem(); });
+    coordSystem.onChange(function (value) { updateCoordinateSystem(_params, _drawClicked, draw, clearPlot); });
     var p = gui1.add(_params, 'P').min(-1).max(1).step(0.01).name("p");
     p.onChange(function (value) { draw(); });
 
@@ -133,21 +137,21 @@ function setupDatGui() {
     var folderAppearance = gui.addFolder('Appearance');
 	var sphereColor = folderAppearance.addColor( _params, 'color' ).name('Color (Diffuse)').listen();
 	sphereColor.onChange(function(value) // onFinishChange
-	{   _lastMesh.material.color.setHex( value.replace("#", "0x") );   });
+	{   getLastMesh().material.color.setHex( value.replace("#", "0x") );   });
 	
     _sphereColorS = folderAppearance.addColor( _params, 'colorS' ).name('Color (Specular)').listen();
 	_sphereColorS.onChange(function(value) // onFinishChange
-	{   _lastMesh.material.specular.setHex( value.replace("#", "0x") );   });
-	var sphereShininess = folderAppearance.add( _params, 'shininess' ).min(0).max(60).step(1).name('Shininess').listen();
+	{   getLastMesh().material.specular.setHex( value.replace("#", "0x") );   });
+	var sphereShininess = folderAppearance.add( _params, 'shininess' ).min(0).max(200).step(1).name('Shininess').listen();
 	sphereShininess.onChange(function(value)
-	{   _lastMesh.material.shininess = value;   });
+	{   getLastMesh().material.shininess = value;   });
 	var sphereOpacity = folderAppearance.add( _params, 'opacity' ).min(0).max(1).step(0.01).name('Opacity').listen();
 	sphereOpacity.onChange(function(value)
-	{   _lastMesh.material.opacity = value;   });
+	{   getLastMesh().material.opacity = value;   });
 	
 	var sphereMaterial = folderAppearance.add( _params, 'material', [ "Basic", "Lambert", "Phong", "Wireframe" ] ).name('Material Type');
 	sphereMaterial.onChange(function(value) 
-	{   updateMeshAppearance();   });
+	{   updateMeshAppearance(_params, getLastMesh);   });
     folderAppearance.open();     // this won't work now that we have textarea for input, 
 	                                // given all the shenanigans i did to make that show/hide
     
@@ -162,7 +166,7 @@ function setupDatGui() {
 
 	
 	gui.open();
-	updateCoordinateSystem();
+	updateCoordinateSystem(_params, _drawClicked, draw, clearPlot);
 	draw();
 	var x = document.getElementsByTagName('textarea')
 	for (var i = 0; i < x.length; i++)

@@ -1,14 +1,7 @@
-﻿function convertToJavascript(system, userFormula, mathPrefix) {
+﻿export function convertToJavascript(system, userFormula, mathPrefix) {
     var possibleValues = getPossibleValuesForSystem(system);
     var formula = userFormula.toLowerCase().replace(/ /g, '').replace(/math/g, 'Math').replace(/\n/g, '');
-    // if (formula.indexOf('[') > -1 || formula.indexOf(']') > -1) {
-    //     alert('No brackets in the formula please.');
-    //     return null;
-    // }
-    //if (formula.indexOf(';') > -1) {
-    //    alert('No semi-colons in the formula please.');
-    //    return null;
-    //}
+
     if (formula.indexOf('^') > -1) {
         alert("The '^' character is not allowed. If you're trying to do exponentiation, use the pow function.\nFor instance pow(x,3) to cube x.");
         return null;
@@ -31,8 +24,8 @@
     }
     return formula;
 }
-function getDependentVariable(validatedFormula) {
-    var dependentVariable = _params.formula.split("=");
+export function getDependentVariable(validatedFormula) {
+    var dependentVariable = validatedFormula.split("=");
     return dependentVariable[0];
 }
 function parseTokens(tokens, formula, possibleValues, mathPrefix) {
@@ -41,7 +34,6 @@ function parseTokens(tokens, formula, possibleValues, mathPrefix) {
     for (var i = 1; i < tokens.length; i++) {
         var token = tokens[i];
         if (token.length == 0) continue;
-        console.log(token, possibleValues);
         if (
             token == 'cos' ||
             token == 'cosh' ||
@@ -95,4 +87,33 @@ function parseTokens(tokens, formula, possibleValues, mathPrefix) {
         }
     }
     return formula + ';';
+}
+function getPossibleValuesForSystem(system) {
+    var possibleValues;
+    if (system == "cartesian") {
+        possibleValues = "x,y,z,p";
+    }
+    if (system == "spherical") {
+        possibleValues = "radius,phi,theta,p";
+    }
+    if (system == "toroidal") {
+        possibleValues = "radius, phi, theta";
+    }
+    if (system == "parametric") {
+        possibleValues = "x,y,z,u,v,xx,yy,zz,phi,rr,pp,qq,r1,r2,r3,torusknot,point";
+    }
+    if (system == "cylindrical") {
+        possibleValues = "z,radius,phi,p";
+    }
+    return possibleValues;
+}
+export function getCleanFormula(userFormula) {
+    var formula = userFormula.toLowerCase()
+            .replace(' ', '')
+            .replace(/math/g, 'Math')
+            .replace(/;;/g, ';')
+            .replace(/;/g, ';\n')
+    ;
+    console.log(formula);
+    return formula;
 }

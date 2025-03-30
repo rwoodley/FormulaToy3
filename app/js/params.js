@@ -1,4 +1,6 @@
-function params() {
+import { getParameterByName  } from './utilities.js';
+
+export function params(userClickedDraw) {
     this.formula = "z = 1";
     this.spin = true;
     this.spinSpeed = Math.PI / 256;
